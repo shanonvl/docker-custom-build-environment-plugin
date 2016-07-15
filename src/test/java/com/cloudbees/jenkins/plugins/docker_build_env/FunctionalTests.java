@@ -13,8 +13,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
 
 import java.util.Collections;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.junit.Assert.assertThat;
 
 
@@ -31,9 +34,9 @@ public class FunctionalTests {
         FreeStyleProject project = jenkins.createFreeStyleProject();
 
         project.getBuildWrappersList().add(
-            new DockerBuildWrapper(
-                new PullDockerImageSelector("ubuntu:14.04"),
-                "", new DockerServerEndpoint("", ""), "", true, false, Collections.<Volume>emptyList(), null, "cat", false, "bridge", null, null)
+                new DockerBuildWrapper(
+                        new PullDockerImageSelector("ubuntu:14.04"),
+                        "", new DockerServerEndpoint("", ""), "", true, false, Collections.<Volume>emptyList(), null, "cat", false, "bridge", null, null)
         );
         project.getBuildersList().add(new Shell("lsb_release  -a"));
 
@@ -61,6 +64,18 @@ public class FunctionalTests {
         String s = FileUtils.readFileToString(build.getLogFile());
         assertThat(s, containsString("Ubuntu 14.04"));
         jenkins.buildAndAssertSuccess(project);
+    }
+
+    @Test
+    public void bind_mount_replaces_existing_mount() throws Exception {
+        BuiltInContainer container = new BuiltInContainer(null); // don't need docker arg for this test.
+        Map<String, String> volumes = container.getVolumes();
+        assertThat(volumes.size(), equalTo(0));
+        container.bindMount("/var/jenkins_home");
+        container.bindMount("/srv/docker/jenkins/var/jenkins_home", "/var/jenkins_home");
+        assertThat(volumes.size(), equalTo(1));
+        assertThat(volumes.get("/var/jenkins_home"), isEmptyOrNullString());
+        assertThat(volumes.get("/srv/docker/jenkins/var/jenkins_home"), equalTo("/var/jenkins_home"));
     }
 
 }

@@ -27,6 +27,7 @@ public class BuiltInContainer implements BuildBadgeAction, EnvironmentContributi
     private final transient Docker docker;
     private List<Integer> ports = new ArrayList<Integer>();
     private Map<String,String> volumes = new HashMap<String,String>();
+    private Map<String,String> volumeTargets = new HashMap<String,String>();
 
     public BuiltInContainer(Docker docker) {
         this.docker = docker;
@@ -85,17 +86,21 @@ public class BuiltInContainer implements BuildBadgeAction, EnvironmentContributi
     }
 
     public void bindMount(String path) {
-        volumes.put(path, path);
+        bindMount(path,path);
     }
 
     public void bindMount(String hostPath, String path) {
+        String source = volumeTargets.get(path);
+        if (source != null) {
+            volumes.remove(source);
+        }
         volumes.put(hostPath, path);
+        volumeTargets.put(path, hostPath);
     }
 
     public Map<String, String> getVolumes() {
         return volumes;
     }
-
 
     public @Nonnull Map<Integer, Integer> getPortsMap() {
         Map<Integer, Integer> map = new HashMap<Integer, Integer>();
